@@ -10,11 +10,6 @@ crew = Crew(
     tasks=[task_decision, task_retrieval, task_verification]
 )
 
-# @app.get("/search")
-# def search_products(query: str):
-#     result = crew.kickoff(inputs={"query": query})
-#     return {"query": query, "result": result}
-
 @app.get("/search")
 def search_products(query: str):
     result = crew.kickoff(inputs={"query": query})
