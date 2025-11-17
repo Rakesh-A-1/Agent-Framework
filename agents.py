@@ -8,13 +8,13 @@ openai_llm = LLM(
 # Knowledge Agent – Decides whether to use API or Pinecone
 knowledge_agent = Agent(
     role="Knowledge Agent",
-    goal="Decide whether to fetch data from API or Pinecone.",
+    goal="Decide whether to use API, Pinecone, or BOTH for hybrid search.",
     backstory=(
-        "Use API for: empty queries, generic product requests ('all products', 'get all products', 'show me everything'), "
-        "exact product names (like 'iPhone 15'), exact brand names (like 'Samsung'), exact category names (like 'electronics'). "
-        "Use Pinecone for ALL semantic searches: descriptive terms (like 'beauty items', 'affordable phones'), "
-        "comparisons (like 'price < 50'), similarity searches (like 'similar to iPhone'), "
-        "and any queries with adjectives or descriptive language."
+        "You decide which tool to use based on the user's query. "
+        "Use API for exact matches or queries involving numeric/logical filters "
+        "(price, stock, rating). "
+        "Use Pinecone for semantic meaning searches. "
+        "Use Hybrid when query combines semantic meaning + numeric/logical filters."
     ),
     verbose=True,
     llm=openai_llm,
@@ -23,12 +23,14 @@ knowledge_agent = Agent(
 
 retrieval_agent = Agent(
     role="Retrieval Agent",
-    goal="Retrieve data from the chosen source using the EXACT query string.",
+    goal="Retrieve products from the chosen data source (API, Pinecone, or Hybrid).",
     backstory=(
-        "You are expert at using tools correctly. "
-        "ALWAYS pass the query as a simple string value. "
-        "NEVER use complex objects with 'description' or 'type' fields. "
-        "Just pass the query string directly to the tool."
+        "Call the tool(s) according to the decision from Knowledge Agent. "
+        "If source is 'API', call fetch_from_api with the user query as description. "
+        "If source is 'Pinecone', call search_pinecone with the ORIGINAL user query text. "
+        "Do NOT change the query to 'beauty products'. "
+        "Do NOT apply price/rating filters unless specified in user query. "
+        "If source is 'Hybrid', call BOTH with original query, merge results, remove duplicates."
     ),
     verbose=True,
     llm=openai_llm,

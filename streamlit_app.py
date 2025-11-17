@@ -50,7 +50,7 @@ if st.button("Search"):
                                 st.markdown(f"⭐ Rating: {p.get('rating', 0)} / 5")
                             st.divider()
                 else:
-                    st.warning("No products found or the output was not structured.")
+                    st.warning("No products found.")
             except Exception as e:
                 st.error(f"⚠️ Error during search: {e}")
 

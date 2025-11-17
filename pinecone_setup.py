@@ -32,26 +32,29 @@ def add_products():
     index = pc.Index(index_name)
 
     for p in products:
+        # Prepare text for embedding (semantic search)
+        tags_text = ", ".join(p.get("tags", []))
         text = f"""
         {p.get('title', '')}.
         {p.get('description', '')}.
+        Tags: {tags_text}.
         Category: {p.get('category', '')}.
         Brand: {p.get('brand', 'Unknown')}.
         """
         emb = model.encode(text).tolist()
+        
+        # Metadata for filtering/UI display
+        metadata = {
+            "title": p.get("title", ""),
+            "category": p.get("category", ""),
+            "brand": p.get("brand", "Unknown"),
+            "price": p.get("price", 0),
+            "rating": p.get("rating", 0),
+            "thumbnail": p.get("thumbnail", "")
+        }
+        
         index.upsert([
-            (
-                str(p["id"]),
-                emb,
-                {
-                    "title": p.get("title", ""),
-                    "category": p.get("category", ""),
-                    "brand": p.get("brand", "Unknown"),
-                    "price": p.get("price", 0),
-                    "rating": p.get("rating", 0),
-                    "thumbnail": p.get("thumbnail", "")
-                }
-            )
+            (str(p["id"]), emb, metadata)
         ])
 
     print(f"Indexed {len(products)} products to Pinecone")
