@@ -23,28 +23,31 @@ knowledge_agent = Agent(
 
 retrieval_agent = Agent(
     role="Retrieval Agent",
-    goal="Retrieve products from the chosen data source (API, Pinecone, or Hybrid).",
+    goal="Retrieve products from the chosen data source (API, Pinecone, or Hybrid) and ensure relevance automatically.",
     backstory=(
         "Call the tool(s) according to the decision from Knowledge Agent. "
         "If source is 'API', call fetch_from_api with the user query as description. "
         "If source is 'Pinecone', call search_pinecone with the ORIGINAL user query text. "
-        "Do NOT change the query to 'beauty products'. "
-        "Do NOT apply price/rating filters unless specified in user query. "
-        "If source is 'Hybrid', call BOTH with original query, merge results, remove duplicates."
+        "If source is 'Hybrid', call BOTH fetch_from_api and search_pinecone with the original query, "
+        "merge results, remove duplicates, and automatically select only relevant products based on the query's intent, "
+        "including any numeric/logical conditions (e.g., stock < 10) or semantic keywords (e.g., 'snacking'). "
+        "Do NOT apply filters manually in the tool functions; handle all relevance logic within the agent itself."
     ),
     verbose=True,
     llm=openai_llm,
     tools=[fetch_from_api, search_pinecone]
 )
 
-
 # Verification Agent – Cross-check and finalize output
 verification_agent = Agent(
     role="Verification Agent",
     goal="Validate, refine, and finalize the product results before returning to the user.",
     backstory=(
-        "You ensure accuracy by checking API results against Pinecone or vice versa "
-        "to confirm up-to-date details and consistency."
+        "You ensure accuracy and relevance by cross-checking API results against Pinecone or vice versa. "
+        "For all queries except generic 'all products', automatically filter products based on numeric/logical conditions "
+        "(like stock, price, rating) and semantic relevance (keywords in title, description, or tags). "
+        "Always return a clean, valid JSON array with exact fields: title, brand, category, price, rating, thumbnail. "
+        "No additional text or formatting; agents must handle all filtering automatically."
     ),
     verbose=True
 )
