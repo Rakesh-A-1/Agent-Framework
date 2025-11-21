@@ -3,6 +3,17 @@ from decouple import config
 from pinecone import Pinecone
 from sentence_transformers import SentenceTransformer
 import requests
+import streamlit as st
+
+@st.cache_resource
+def load_st_model():
+    model = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
+    model.encode(["warmup"])  # Prevent meta tensor issues
+    return model
+
+@st.cache_resource
+def load_pinecone():
+    return Pinecone(api_key=config("PC_API_KEY"))
 
 @tool
 def fetch_from_api(query: dict) -> list:
@@ -40,11 +51,11 @@ def search_pinecone(query_input: dict) -> list:
         print(f"Pinecone searching for: '{query}'")
 
         # Embed query
-        model = SentenceTransformer("all-MiniLM-L6-v2")
+        model = load_st_model()
         query_emb = model.encode(query).tolist()
 
         # Initialize Pinecone index
-        pc = Pinecone(api_key=config("PC_API_KEY"))
+        pc = load_pinecone()
         index = pc.Index("ecommerce-products")
 
         # Query Pinecone without external filters
