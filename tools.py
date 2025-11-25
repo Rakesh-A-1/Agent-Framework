@@ -1,50 +1,40 @@
 from crewai.tools import tool
+import requests
 from decouple import config
 from pinecone import Pinecone
 from sentence_transformers import SentenceTransformer
-import requests
 import streamlit as st
 
 @st.cache_resource
 def load_st_model():
     model = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
-    model.encode(["warmup"])  # Prevent meta tensor issues
+    model.encode(["warmup"])
     return model
 
 @st.cache_resource
 def load_pinecone():
     return Pinecone(api_key=config("PC_API_KEY"))
 
-@tool
-def fetch_from_api(query: dict) -> list:
-    """
-    Fetch all products from DummyJSON API.
-    Do NOT manually filter here — agent handles filtering/verification.
-    """
+# Internal helper functions (not tools)
+def _fetch_from_api_helper(query: str) -> list:
+    """Helper function to fetch from API"""
     try:
-        response = requests.get("https://dummyjson.com/products")
-        products = response.json().get("products", [])
-        print(f"API returned {len(products)} products")
-        return products
+        print(f"API searching for: {query}")
+        
+        # Get all products first
+        url = "https://dummyjson.com/products"
+        response = requests.get(url)
+        all_products = response.json().get("products", [])
+            
+        print(f"API returned {len(all_products)} products")
+        return all_products
     except Exception as e:
         print(f"API Error: {e}")
         return []
 
-@tool
-def search_pinecone(query_input: dict) -> list:
-    """
-    Search semantically similar products from Pinecone.
-    Do NOT apply external filters here — agent handles filtering internally.
-    
-    Args:
-        query_input: dict with 'description' key containing the search query
-    """
+def _search_pinecone_helper(query: str) -> list:
+    """Helper function to search Pinecone"""
     try:
-        # Extract the query from the dictionary
-        if "description" not in query_input:
-            raise ValueError("Missing 'description' key in query input")
-            
-        query = str(query_input["description"])
         if not query.strip():
             raise ValueError("Query description cannot be empty.")
 
@@ -71,4 +61,47 @@ def search_pinecone(query_input: dict) -> list:
 
     except Exception as e:
         print(f"Pinecone Error: {e}")
+        return []
+
+# Tool functions
+@tool
+def fetch_from_api(query: str) -> list:
+    """Fetch products from DummyJSON API"""
+    return _fetch_from_api_helper(query)
+
+@tool
+def search_pinecone(query: str) -> list:
+    """Search semantically similar products from Pinecone"""
+    return _search_pinecone_helper(query)
+
+@tool
+def hybrid_search(query: str) -> list:
+    """Perform hybrid search by combining API fetch and semantic search"""
+    try:
+        print(f"Hybrid searching for: '{query}'")
+        
+        # Get results from both sources using helper functions
+        api_results = _fetch_from_api_helper(query)
+        semantic_results = _search_pinecone_helper(query)
+        
+        # Combine results
+        all_results = api_results + semantic_results
+        
+        # Basic deduplication by product ID
+        seen_ids = set()
+        unique_results = []
+        
+        for product in all_results:
+            product_id = product.get('id')
+            if product_id and product_id not in seen_ids:
+                seen_ids.add(product_id)
+                unique_results.append(product)
+            elif not product_id:
+                unique_results.append(product)
+        
+        print(f"Hybrid search found {len(unique_results)} unique products")
+        return unique_results
+        
+    except Exception as e:
+        print(f"Hybrid search error: {e}")
         return []

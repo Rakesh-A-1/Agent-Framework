@@ -2,11 +2,49 @@ import streamlit as st
 import json
 from crewai import Crew
 from tasks import task_decision, task_retrieval, task_verification
+from agents import knowledge_agent, retrieval_agent, verification_agent
 
-# Initialize Crew
+# Initialize the crew
 crew = Crew(
-    tasks=[task_decision, task_retrieval, task_verification]
+    agents=[knowledge_agent, retrieval_agent, verification_agent],
+    tasks=[task_decision, task_retrieval, task_verification],
+    verbose=True,
+    process="sequential"
 )
+
+def search_products(user_query: str):
+    """Execute the full product search pipeline"""
+    try:
+        result = crew.kickoff(inputs={'query': user_query})
+        return result
+    except Exception as e:
+        st.error(f"Crew execution error: {e}")
+        return None
+
+def parse_final_output(output):
+    """Convert Crew/LLM output into a valid Python list."""
+    
+    # If Crew result object, unwrap to raw text
+    if hasattr(output, "raw"):
+        output = output.raw
+    
+    # If it's already a list, return as-is
+    if isinstance(output, list):
+        return output
+
+    # If it's a string, attempt JSON parsing
+    if isinstance(output, str):
+        try:
+            return json.loads(output)
+        except json.JSONDecodeError:
+            # fallback: try removing whitespace or stray characters
+            cleaned = output.strip()
+            try:
+                return json.loads(cleaned)
+            except:
+                return []
+
+    return []
 
 st.set_page_config(page_title="CrewAI E-Commerce Search", layout="wide")
 
@@ -26,17 +64,13 @@ if st.button("Search"):
     else:
         with st.spinner("🤖 Agents are collaborating..."):
             try:
-                # Kick off the Crew workflow
-                result = crew.kickoff(inputs={"query": query})
-                final_output = result.tasks_output[-1].raw
-
-                try:
-                    products = json.loads(final_output)
-                except Exception:
-                    products = final_output
-
-                if isinstance(products, list) and len(products) > 0:
-                    st.success(f"✅ Found {len(products)} products for query: '{query}'")
+                result = search_products(query)
+                if result:
+                    # Get the final output from the last task
+                    final_output = result.raw if hasattr(result, 'raw') else result
+                    products = parse_final_output(final_output)
+                    if isinstance(products, list) and len(products) > 0:
+                        st.success(f"✅ Found {len(products)} products for query: '{query}'")
                     for p in products:
                         with st.container():
                             cols = st.columns([1, 3])
