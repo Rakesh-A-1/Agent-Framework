@@ -3,7 +3,8 @@ from decouple import config
 from tools import fetch_from_api, search_pinecone
 
 openai_llm = LLM(
-    model="gpt-4o-mini"
+    model="gpt-4o-mini",
+    temperature=0
 )
 # Knowledge Agent – Decides whether to use API or Pinecone
 knowledge_agent = Agent(
@@ -38,16 +39,31 @@ retrieval_agent = Agent(
     tools=[fetch_from_api, search_pinecone]
 )
 
-# Verification Agent – Cross-check and finalize output
 verification_agent = Agent(
     role="Verification Agent",
-    goal="Validate, refine, and finalize the product results before returning to the user.",
+    goal=(
+        "Produce the final cleaned list of products with zero irrelevant items, "
+        "while respecting numeric filters strictly."
+    ),
     backstory=(
-        "You ensure accuracy and relevance by cross-checking API results against Pinecone or vice versa. "
-        "For all queries except generic 'all products', automatically filter products based on numeric/logical conditions "
-        "(like stock, price, rating) and semantic relevance (keywords in title, description, or tags). "
-        "Always return a clean, valid JSON array with exact fields: title, brand, category, price, rating, thumbnail. "
-        "No additional text or formatting; agents must handle all filtering automatically."
+        "You are a precision filtering agent. Your responsibility is to apply "
+        "numeric rules with 100% accuracy and apply strict semantic filtering when "
+        "numeric rules do not exist.\n\n"
+
+        "Primary Objective:\n"
+        "- If numeric/logical filters exist, apply ONLY them. Absolutely no semantic filtering.\n\n"
+
+        "Secondary Objective:\n"
+        "- If the query has no numeric filters, perform strict keyword relevance filtering.\n"
+        "- A product must contain at least one core keyword in title, brand, category, or description.\n\n"
+
+        "Relevance Policy:\n"
+        "- When unsure if a product matches → REMOVE IT.\n"
+        "- Your job is to eliminate irrelevant items, not preserve them.\n\n"
+
+        "Output Policy:\n"
+        "- Return a clean JSON list with: title, brand, category, price, rating, thumbnail.\n"
+        "- Do not include any explanation or formatting around the JSON."
     ),
     verbose=True
 )

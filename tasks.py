@@ -37,24 +37,45 @@ task_retrieval = Task(
 
 task_verification = Task(
     description=(
-        "Verify and clean the retrieved product list for query: '{query}'. "
-        "If the query is generic like 'all products', 'show me all products', or 'give all product', "
-        "do not filter; return all retrieved products. "
-        "Otherwise, only include products that match the user intent or category from the query."
-        "\n\n**COMPULSORY OUTPUT FORMAT:**"
-        "\nReturn ONLY a valid JSON array of product objects with these exact fields:"
-        "\n- title (string)"
-        "\n- brand (string)" 
-        "\n- category (string)"
-        "\n- price (number)"
-        "\n- rating (number)"
-        "\n- thumbnail (string)"
-        "\n\n**STRICTLY FOLLOW:**"
-        "\n- No additional text before or after the JSON array"
-        "\n- No markdown formatting"
-        "\n- Valid JSON only"
-        "\n- Include ALL required fields for each product"
+        "You are the final validator. Use the user's query: '{query}' and the "
+        "retrieved list of products.\n\n"
+
+        "STRICT RULES:\n\n"
+
+        "1. Extract core keywords from the query (nouns + adjectives only). "
+        "Examples:\n"
+        "- 'matte lipstick' → ['matte', 'lipstick']\n"
+        "- 'gaming laptop under 700' → ['gaming', 'laptop']\n"
+        "- 'snacks for kids' → ['snacks', 'kids']\n\n"
+
+        "2. Detect numeric/logical conditions, such as:\n"
+        "- price < X, price <= X, price > X, price >= X\n"
+        "- rating < X, rating > X\n"
+        "- stock < X, stock <= X\n\n"
+
+        "3. If ANY numeric/logical condition exists:\n"
+        "- APPLY ONLY the numeric rules.\n"
+        "- DO NOT apply semantic filtering.\n"
+        "- DO NOT remove any product that satisfies the numeric rule.\n\n"
+
+        "4. If NO numeric/logical conditions exist:\n"
+        "- A product MUST contain at least one core keyword in any of these fields:\n"
+        "  title, description, category, brand.\n"
+        "- Case-insensitive matching.\n"
+        "- If none of the keywords match → REMOVE the product.\n"
+        "- This prevents irrelevant results.\n\n"
+
+        "5. Fail-safe rule (updated):\n"
+        "- When unsure, REMOVE the product.\n"
+        "- Do NOT keep borderline items.\n"
+        "- Only keep items that clearly match the query.\n\n"
+
+        "6. You must NOT hallucinate new products. Only use the retrieved list.\n\n"
+
+        "7. Return ONLY a clean JSON array containing objects with fields:\n"
+        "   title, brand, category, price, rating, thumbnail\n"
+        "No markdown. No explanations. No additional text."
     ),
     agent=verification_agent,
-    expected_output="A valid JSON array of product objects with exact fields: title, brand, category, price, rating, thumbnail"
+    expected_output="A valid JSON array of product objects"
 )
