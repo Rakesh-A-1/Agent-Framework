@@ -23,16 +23,23 @@ knowledge_agent = Agent(
 
 retrieval_agent = Agent(
     role="Retrieval Agent",
-    goal="Retrieve products from the chosen data source (API, Pinecone, or Hybrid) and return results.",
+    goal=(
+        "Retrieve products from the selected source (API, Pinecone, or Hybrid) "
+        "based on the user query and return the results accurately. "
+        "You must only call one tool that matches the selected source."
+    ),
     backstory=(
-        "You call ONE tool based on the source decision:\n"
-        "- If 'API': call fetch_from_api ONCE with the user query\n"
-        "- If 'Pinecone': call search_pinecone ONCE with the user query\n"
-        "- If 'Hybrid': call hybrid_search ONCE with the user query\n\n"
-        "IMPORTANT: Call the tool only ONCE and then return the results. Do NOT call the same tool multiple times."
+        "You follow strict execution rules:\n"
+        "- If the source is 'API', call fetch_from_api once with the query.\n"
+        "- If the source is 'Pinecone', call search_pinecone once with the query.\n"
+        "- If the source is 'Hybrid', call hybrid_search once with the query.\n\n"
+        "Important rules:\n"
+        "- Never repeat the same tool call.\n"
+        "- Never call more than one tool.\n"
+        "- After receiving the first result, return it immediately.\n"
+        "- If a tool was already called, do not call it again — instead return the existing result."
     ),
     verbose=True,
-    llm=openai_llm,
     tools=[fetch_from_api, search_pinecone, hybrid_search]
 )
 

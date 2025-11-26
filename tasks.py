@@ -25,6 +25,8 @@ task_retrieval = Task(
         "- If source is 'API': call fetch_from_api ONCE with the exact query string\n"
         "- If source is 'Pinecone': call search_pinecone ONCE with the exact query string\n"
         "- If source is 'Hybrid': call hybrid_search ONCE with the exact query string\n\n"
+        "- Execute only one tool matching the source and do not repeat the same tool call.\n"
+        "- Once results are received, stop and return them immediately."
         "CRITICAL: \n"
         "1. Call the tool ONLY ONCE - do not repeat the same call\n"
         "2. Pass the query as a plain string\n"
