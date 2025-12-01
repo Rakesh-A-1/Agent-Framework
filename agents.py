@@ -17,7 +17,6 @@ knowledge_agent = Agent(
         "Use Pinecone for semantic meaning searches. "
         "Use Hybrid when query combines semantic meaning + numeric/logical filters."
     ),
-    verbose=True,
     llm=openai_llm
 )
 
@@ -39,7 +38,6 @@ retrieval_agent = Agent(
         "- After receiving the first result, return it immediately.\n"
         "- If a tool was already called, do not call it again — instead return the existing result."
     ),
-    verbose=True,
     tools=[fetch_from_api, search_pinecone, hybrid_search]
 )
 
@@ -67,7 +65,6 @@ verification_agent = Agent(
 
         "Output Policy:\n"
         "- Return a clean JSON list with: title, brand, category, price, rating, thumbnail.\n"
-        "- Do not include any explanation or formatting around the JSON."
-    ),
-    verbose=True
+        "- Do not include any explanation or formatting around the JSON.\n- If the retrieved output is already valid JSON or structured data, return it without modification. Only reformat when the output is unstructured or improperly formatted."
+    )
 )
