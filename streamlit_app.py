@@ -4,13 +4,26 @@ from crewai import Crew
 from tasks import task_decision, task_retrieval, task_verification
 from agents import knowledge_agent, retrieval_agent, verification_agent
 from product_schema import ProductSchema
+from decouple import config
+from crewai.memory.external.external_memory import ExternalMemory
+from custom_storage import CustomStorage
+import pprint
+external_memory = ExternalMemory(storage=CustomStorage())
 
 # Initialize the crew
 crew = Crew(
     agents=[knowledge_agent, retrieval_agent, verification_agent],
     tasks=[task_decision, task_retrieval, task_verification],
     verbose=True,
-    memory=True,
+    # memory=True,
+    external_memory=external_memory,
+    embedder={
+        "provider": "google-generativeai",
+        "config": {
+            "api_key": "AIzaSyANDYfX_z46KrGM6dB_HnbwiDXM46dyXQ4",
+            "model_name": "gemini-embedding-001"
+        }
+    },
     process="sequential",
     output_log_file=True,
     tracing=True
@@ -56,6 +69,10 @@ if st.button("Search"):
         with st.spinner("🤖 Agents are collaborating..."):
             try:
                 products = search_products(query)
+                st.subheader("🧠 External Memory Debug")
+                pprint.pprint(external_memory.storage.memories)
+                # You can also just show it in Streamlit:
+                st.json(external_memory.storage.memories)
                 if products and len(products) > 0:
                     st.success(f"✅ Found {len(products)} products for query: '{query}'")
                     for p in products:
