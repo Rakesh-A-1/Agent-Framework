@@ -4,7 +4,8 @@ from tools import fetch_from_api, search_pinecone, hybrid_search
 
 openai_llm = LLM(
     model="gpt-4o-mini",
-    temperature=0
+    temperature=0,
+    seed=42
 )
 # Knowledge Agent – Decides whether to use API or Pinecone
 knowledge_agent = Agent(
