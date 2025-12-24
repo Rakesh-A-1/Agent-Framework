@@ -8,3 +8,4 @@ venv/
 *.log
 logs.txt
 agent_memory.json
+output.txt

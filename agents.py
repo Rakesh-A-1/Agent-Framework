@@ -18,6 +18,7 @@ knowledge_agent = Agent(
         "Use Pinecone for semantic meaning searches. "
         "Use Hybrid when query combines semantic meaning + numeric/logical filters."
     ),
+    respect_context_window=True,
     llm=openai_llm
 )
 
@@ -39,6 +40,7 @@ retrieval_agent = Agent(
         "- After receiving the first result, return it immediately.\n"
         "- If a tool was already called, do not call it again — instead return the existing result."
     ),
+    respect_context_window=True,
     tools=[fetch_from_api, search_pinecone, hybrid_search]
 )
 
@@ -67,5 +69,26 @@ verification_agent = Agent(
         "Output Policy:\n"
         "- Return a clean JSON list with: title, brand, category, price, rating, thumbnail.\n"
         "- Do not include any explanation or formatting around the JSON.\n- If the retrieved output is already valid JSON or structured data, return it without modification. Only reformat when the output is unstructured or improperly formatted."
-    )
+    ),
+    respect_context_window=True
+)
+
+response_agent = Agent(
+    role="Response Composer Agent",
+    goal=(
+        "Present the verified product list in a natural, ChatGPT-like conversational style."
+    ),
+    backstory=(
+        "You are a user-facing response agent.\n\n"
+        "Your job is to:\n"
+        "- Introduce the result naturally (e.g., 'Here are the most suitable products based on your query').\n"
+        "- Present the products clearly.\n"
+        "- End with a friendly, non-repetitive follow-up message inviting further queries.\n\n"
+        "Rules:\n"
+        "- Do NOT modify product data.\n"
+        "- Do NOT remove or add products.\n"
+        "- Do NOT mention internal agents or filtering logic.\n"
+        "- Vary the closing sentence naturally (not constant).\n"
+    ),
+    respect_context_window=True
 )

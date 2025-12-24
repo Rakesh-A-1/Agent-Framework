@@ -1,18 +1,54 @@
 import streamlit as st
 import json
 from crewai import Crew
-from tasks import task_decision, task_retrieval, task_verification
-from agents import knowledge_agent, retrieval_agent, verification_agent
+from tasks import task_decision, task_retrieval, task_verification,task_response
+from agents import knowledge_agent, retrieval_agent, verification_agent,response_agent
 from product_schema import ProductSchema
 from crewai.memory.external.external_memory import ExternalMemory
 from custom_storage import FileStorage
+from crewai import LLM
+from crewai.utilities.prompts import Prompts
+
+openai_llm = LLM(
+    model="gpt-4o-mini",
+    temperature=0.7   # allow natural language variation
+)
+
+agents = [knowledge_agent, retrieval_agent, verification_agent,response_agent]
+tasks = [task_decision, task_retrieval, task_verification,task_response]
+
+# Create the prompt generator
+for agent, task in zip(agents, tasks):
+    prompt_generator = Prompts(
+        agent=agent,
+        has_tools=len(agent.tools) > 0,
+        use_system_prompt=agent.use_system_prompt
+    )
+
+    # Generate and inspect the actual prompt
+    generated_prompt = prompt_generator.task_execution()
+
+    # Print the complete system prompt that will be sent to the LLM
+    if "system" in generated_prompt:
+        print("=== SYSTEM PROMPT ===")
+        print(generated_prompt["system"])
+        print("\n=== USER PROMPT ===")
+        print(generated_prompt["user"])
+    else:
+        print("=== COMPLETE PROMPT ===")
+        print(generated_prompt["prompt"])
+
+    # You can also see how the task description gets formatted
+    print("\n=== TASK CONTEXT ===")
+    print(f"Task Description: {task.description}")
+    print(f"Expected Output: {task.expected_output}")
 
 external_memory = ExternalMemory(storage=FileStorage())
 
 # Initialize the crew
 crew = Crew(
-    agents=[knowledge_agent, retrieval_agent, verification_agent],
-    tasks=[task_decision, task_retrieval, task_verification],
+    agents=[knowledge_agent, retrieval_agent, verification_agent,response_agent],
+    tasks=[task_decision, task_retrieval, task_verification,task_response],
     verbose=True,
     external_memory=external_memory,
     process="sequential",
@@ -41,44 +77,54 @@ def search_products(user_query: str):
         st.error(f"Crew execution error: {e}")
         return []
 
-st.set_page_config(page_title="CrewAI E-Commerce Search", layout="wide")
-
-st.title("🛍️ CrewAI E-Commerce Search Assistant")
-st.markdown(
-    "Enter a product query — the agents will decide whether to use the API or Pinecone, "
-    "retrieve results, verify them, and display the best-matched items."
+# Page config
+st.set_page_config(
+    page_title="E-commerce AI Agent",
+    page_icon="🛍️",
+    layout="wide"
 )
 
-# Input
-query = st.text_input("🔍 What are you looking for?", placeholder="e.g., iPhone, laptops, similar to Samsung, all products")
+# Title and Description
+st.title("🛍️ E-commerce AI Agent")
+st.markdown("""
+This agent can help you find products using:
+- **Structured Data**: Prices, stock, IDs (via DummyJSON)
+- **Semantic Search**: Descriptions, features (via Pinecone Vector DB)
+- **Hybrid Search**: Combining both for complex queries
+""")
 
-# Run Search
-if st.button("Search"):
-    if not query.strip():
-        st.warning("Please enter a query before searching.")
-    else:
-        with st.spinner("🤖 Agents are collaborating..."):
+# Sidebar for API Keys (Optional, if not in .env)
+with st.sidebar:
+    st.header("Configuration")
+    st.info("Ensure your `.env` file is set up with API keys.")
+    if st.button("Reload Agent"):
+        st.cache_data.clear()
+        st.success("Agent reloaded!")
+
+# Chat Interface
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Display chat history
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# User Input
+if prompt := st.chat_input("Ask about a product..."):
+    # Add user message to history
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # Generate response
+    with st.chat_message("assistant"):
+        with st.spinner("Thinking..."):
             try:
-                products = search_products(query)
-                if products and len(products) > 0:
-                    st.success(f"✅ Found {len(products)} products for query: '{query}'")
-                    for p in products:
-                        with st.container():
-                            cols = st.columns([1, 3])
-                            with cols[0]:
-                                st.image(p.get("thumbnail", ""), width='stretch')
-                            with cols[1]:
-                                st.subheader(p.get("title", "Unnamed Product"))
-                                st.markdown(f"**Brand:** {p.get('brand', 'Unknown')}")
-                                st.markdown(f"**Category:** {p.get('category', '-')}")
-                                st.markdown(f"**Price:** ${p.get('price', 0)}")
-                                st.markdown(f"⭐ Rating: {p.get('rating', 0)} / 5")
-                            st.divider()
-                else:
-                    st.warning("No products found.")
+                # Capture stdout to show agent thinking process if needed
+                # For now, just running the crew
+                response = crew.kickoff(inputs={'query': prompt})
+                st.markdown(response)
+                st.session_state.messages.append({"role": "assistant", "content": response})
             except Exception as e:
-                st.error(f"⚠️ Error during search: {e}")
-
-# Footer
-st.markdown("---")
-st.caption("Powered by CrewAI Agents + Pinecone + DummyJSON API")
+                st.error(f"An error occurred: {str(e)}")

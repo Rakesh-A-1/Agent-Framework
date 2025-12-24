@@ -1,5 +1,5 @@
 from crewai import Task
-from agents import knowledge_agent,retrieval_agent,verification_agent
+from agents import knowledge_agent,retrieval_agent,verification_agent,response_agent
 
 task_decision = Task(
     description=(
@@ -80,4 +80,19 @@ task_verification = Task(
     ),
     agent=verification_agent,
     expected_output="A valid JSON array of product objects"
+)
+
+task_response = Task(
+    description=(
+        "User query: '{query}'\n\n"
+        "You will receive a verified JSON list of products.\n\n"
+        "Generate a natural language response like ChatGPT:\n"
+        "- Start with a friendly intro.\n"
+        "- Present the products clearly.\n"
+        "- End with a polite, varied follow-up (e.g., offering help, refinements, or alternatives).\n\n"
+        "Do NOT output JSON.\n"
+        "Do NOT change product details."
+    ),
+    agent=response_agent,
+    expected_output="A conversational, user-friendly response"
 )
