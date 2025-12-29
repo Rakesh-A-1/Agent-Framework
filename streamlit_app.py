@@ -112,19 +112,28 @@ for message in st.session_state.messages:
 
 # User Input
 if prompt := st.chat_input("Ask about a product..."):
-    # Add user message to history
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Generate response
+    history_str = "\n".join(
+        [f"{msg['role']}: {msg['content']}" for msg in st.session_state.messages[-5:]]
+    )
+
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             try:
-                # Capture stdout to show agent thinking process if needed
-                # For now, just running the crew
-                response = crew.kickoff(inputs={'query': prompt})
-                st.markdown(response)
-                st.session_state.messages.append({"role": "assistant", "content": response})
+                inputs = {
+                    'query': prompt,
+                    'chat_history': history_str
+                }
+
+                result = crew.kickoff(inputs=inputs)
+                
+                final_response = result.raw if hasattr(result, 'raw') else str(result)
+
+                st.markdown(final_response)
+                st.session_state.messages.append({"role": "assistant", "content": final_response})
+            
             except Exception as e:
                 st.error(f"An error occurred: {str(e)}")

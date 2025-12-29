@@ -20,21 +20,22 @@ class FileStorage(Storage):
 
     def save(self, value, metadata=None, agent=None):
         entry = {
-            "value": value,
+            "content": value,
             "metadata": metadata,
             "agent": agent
         }
-
-        # Append to in-memory store
         self.memories.append(entry)
-
-        # Write back to json file
         with open(self.filename, "w") as f:
             json.dump(self.memories, f, indent=4)
-
         return entry
 
     def search(self, query, limit=10, score_threshold=0.5):
-        # Optional: simple keyword search
-        results = [m for m in self.memories if query.lower() in str(m["value"]).lower()]
-        return results[:limit]
+        results = []
+        for m in self.memories:
+            value_str = str(m.get("content", "")).lower() 
+            if query.lower() in value_str:
+                results.append(m)
+        
+        recent = self.memories[-limit:] if len(self.memories) > limit else self.memories
+        combined = {id(m): m for m in results + recent}
+        return list(combined.values())[:limit]
