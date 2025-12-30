@@ -56,27 +56,6 @@ crew = Crew(
     tracing=True
 )
 
-def search_products(user_query: str):
-    """Execute the full product search pipeline with validation."""
-    try:
-        result = crew.kickoff(inputs={'query': user_query})
-
-        # Extract raw data from Crew output
-        raw_data = result.raw if hasattr(result, "raw") else result
-
-        # Convert string to Python list if needed
-        if isinstance(raw_data, str):
-            raw_data = json.loads(raw_data)
-
-        # Validate each product using Pydantic ProductSchema
-        products = [ProductSchema.model_validate(item).model_dump() for item in raw_data]
-
-        return products
-
-    except Exception as e:
-        st.error(f"Crew execution error: {e}")
-        return []
-
 # Page config
 st.set_page_config(
     page_title="E-commerce AI Agent",
@@ -85,7 +64,7 @@ st.set_page_config(
 )
 
 # Title and Description
-st.title("🛍️ E-commerce AI Agent")
+st.title("🛍️ Crew E-commerce AI Agent")
 st.markdown("""
 This agent can help you find products using:
 - **Structured Data**: Prices, stock, IDs (via DummyJSON)
@@ -93,13 +72,12 @@ This agent can help you find products using:
 - **Hybrid Search**: Combining both for complex queries
 """)
 
-# Sidebar for API Keys (Optional, if not in .env)
-with st.sidebar:
-    st.header("Configuration")
-    st.info("Ensure your `.env` file is set up with API keys.")
-    if st.button("Reload Agent"):
-        st.cache_data.clear()
-        st.success("Agent reloaded!")
+with st.sidebar: 
+    st.header("Configuration") 
+    st.info("Ensure your .env file contains required API keys.") 
+    if st.button("Clear Chat"): 
+        st.session_state.messages = [] 
+        st.success("Chat cleared")
 
 # Chat Interface
 if "messages" not in st.session_state:
