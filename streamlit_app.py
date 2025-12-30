@@ -3,7 +3,6 @@ import json
 from crewai import Crew
 from tasks import task_decision, task_retrieval, task_verification,task_response
 from agents import knowledge_agent, retrieval_agent, verification_agent,response_agent
-from product_schema import ProductSchema
 from crewai.memory.external.external_memory import ExternalMemory
 from custom_storage import FileStorage
 from crewai import LLM
